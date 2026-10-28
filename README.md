@@ -20,6 +20,17 @@ O projeto nasceu para facilitar a busca e a triagem. Ele não decide se uma opor
 
 O Radar olha até 90 dias à frente. Na planilha, as oportunidades aparecem com informações como prazo, órgão, município, valor estimado, termos encontrados e link para o edital.
 
+### Cores da planilha
+
+As cores ajudam a bater o olho e entender o que aconteceu com cada oportunidade:
+
+- **Verde:** oportunidade nova, identificada na coleta do dia.
+- **Amarelo:** oportunidade com atualização relevante.
+- **Cinza:** oportunidade que não apareceu na coleta mais recente.
+- **Azul-claro:** oportunidade marcada como **Sim** na coluna **Já captei?**.
+- **Vermelho/rosa:** oportunidade suspensa ou cancelada. Esse destaque tem prioridade sobre as outras cores.
+- **Azul-escuro na coluna Prioridade:** oportunidade relacionada ao DNIT.
+
 ## Como funciona a pontuação
 
 As palavras-chave têm pesos diferentes: termos mais específicos valem mais pontos; termos mais amplos valem menos e precisam de contexto. O Radar também considera informações complementares da API e dados do órgão ou da unidade para avaliar alguns termos.
