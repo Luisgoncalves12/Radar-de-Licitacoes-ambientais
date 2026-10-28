@@ -1,0 +1,8 @@
+# Dados locais gerados pelo Radar
+*.db
+*.sqlite
+*.sqlite3
+*.xlsx
+*.xls
+*.csv
+~$*
