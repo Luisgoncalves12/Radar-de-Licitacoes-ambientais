@@ -36,84 +36,34 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "licitacoes_progaia.db"
 PASTA_PLANILHAS = BASE_DIR / "planilhas"
 DIAS_MINIMOS = 7
+LOCAIS_BLOQUEADOS = {("SP", "sao jose dos campos")}
 
-# Termos e pesos: 3 = específico do nosso nicho, 2 = relevante, 1 = genérico (precisa de contexto)
-TERMOS = {
-    # --- peso 3: licenciamento / estudos ambientais
-    "licenciamento ambiental": 3, "estudo de impacto ambiental": 3, "estudos ambientais": 3,
-    "eia/rima": 3, "eia": 3, "rima": 3, "plano básico ambiental": 3,
-    "relatório de controle ambiental": 3, "plano de controle ambiental": 3,
-    "autorização de supressão de vegetação": 3, "asv": 3, "evtea": 3,
-    "relatório ambiental simplificado": 3, "ras": 3,
-    "prad": 3, "plano de recuperação de área degradada": 3,
-    "recuperação de área degradada": 3, "recuperação de áreas degradadas": 3,
-    "supressão de vegetação": 3, "supressão arbórea": 3, "supressão total de árvores": 3,
-    "recomposição florística": 3, "restauração florestal": 3, "inventário florestal": 3,
-    "cadastro arbóreo": 3, "reposição florestal": 3,
-    "manejo arbóreo": 3, "manejo de arborização": 3, "poda de árvores": 3,
-    "poda": 3, "destoca": 3, "remoção de árvores": 3, "corte raso": 3,
-    "supressão e poda": 3, "salvamento arqueológico": 3,
-    "hidrossemeadura": 3, "revegetação": 3, "plantio de mudas": 3,
-    "recomposição vegetal": 3, "espeleologia": 3, "espeleológico": 3,
-    "resgate de fauna": 3,
-    # Termos observados em contratos da Progaia usados para ampliar a cobertura ambiental
-    "arborização urbana": 3, "manejo de árvores": 3, "avaliação de árvores": 2,
-    "plantio de árvores": 3, "mudas arbóreas": 2, "coroamento de mudas": 2,
-    "restauração ecológica": 3, "enleivamento": 2, "tomografia de árvores": 3,
-    "tomografia sônica": 3, "inspeção subaquática": 2,
-    "licença de operação": 3, "unidade de conservação": 2,
-    "plano de manejo de fauna": 3, "plano de fauna": 3,
-    "supervisão ambiental": 3, "supervisão ambiental de obras": 3,
-    "gestão ambiental hidroviária": 3, "monitoramento hidroviário": 3,
-    "levantamento hidroviário": 3, "eclusas": 3,
-    "arqueologia": 3, "acompanhamento arqueológico": 3,
-    # --- peso 2: gestão/monitoramento e levantamentos técnicos
-    "gestão ambiental": 2, "gerenciamento ambiental": 2, "programas ambientais": 2,
-    "manutenção de áreas verdes": 2, "manutenção de áreas verdes e jardinagem": 2,
-    "supervisão de obras": 2, "supervisão das obras": 2, "supervisão de obra": 2,
-    "assessoramento": 2, "projeto básico e executivo de engenharia": 2,
-    "estudos e projetos de engenharia": 2, "projeto de engenharia": 2,
-    "plano de manejo": 2, "fauna silvestre": 2,
-    "monitoramento ambiental": 2, "monitoramento de fauna": 2, "monitoramento de flora": 2,
-    "levantamento de fauna": 2, "impactos ambientais": 2,
-    "batimetria": 2, "hidrologia": 2, "dragagem": 2,
-    "aerolevantamento": 2, "rpa/vant": 2, "levantamento aerofotogramétrico": 2,
-    # --- peso 1: genéricos (muito falso positivo sozinhos)
-    "topografia": 1, "sondagem": 1, "projeto executivo de engenharia": 1,
-    "educação ambiental": 1,
-}
-PALAVRAS_CURTAS = {"eia", "rima", "asv", "ras", "prad"}
+# Configurações editáveis ficam em configuracao.json, ao lado deste script.
+def carregar_configuracao():
+    caminho = BASE_DIR / "configuracao.json"
+    with caminho.open(encoding="utf-8") as arquivo:
+        config = json.load(arquivo)
+    termos = config["termos"]
+    if not isinstance(termos, dict) or not termos:
+        raise ValueError(f"{caminho}: informe termos e pesos")
+    for termo, peso in termos.items():
+        if not isinstance(termo, str) or not termo.strip() or type(peso) is not int or peso not in (1, 2, 3):
+            raise ValueError(f"{caminho}: termo/peso inválido: {termo!r} = {peso!r}")
+    return config
 
-# Se o objeto parecer COMPRA DE BENS, sem termo forte (peso>=3) e sem sinal de serviço/obra (ver RESGATE), é descartado.
-EXCLUSOES = [
-    r"\baquisi[çc][ãa]o\b", r"\bfornecimento de (?:material|materiais|uniforme|equipamento|bens)",
-    r"material de consumo", r"material de expediente", r"\buniformes?\b", r"decora[çc][ãa]o",
-    r"loca[çc][ãa]o de estrutura", r"g[êe]neros aliment", r"licen[çc]as? de softwares?",
-    r"\bkit(?:s)?\b", r"brinquedos", r"material did[áa]tico", r"material gr[áa]fico",
-]
-SCORE_MINIMO = 2  # Um termo genérico isolado não basta para manter a oportunidade.
-STATUS_CAPTACAO = {"nao": 0, "sim": 1, "sem interesse": 2}
-ROTULOS_CAPTACAO = {0: "Não", 1: "Sim", 2: "Sem interesse"}
 
-# Estes termos são apenas pistas de um levantamento topográfico. Não ativar sem serviço-alvo.
-TOPOGRAFIA_FAMILIA = [
-    "topografia", "topográfico", "topográfica", "levantamento topográfico", "agrimensura",
-    "agrimensor", "planialtimétrico", "georreferenciamento", "geodésico", "aerolevantamento",
-    "levantamento aerofotogramétrico", "rpa/vant",
-]
-
-# Sugestões derivadas dos serviços da Progaia; mantidas inativas até decisão do usuário.
-SUGESTOES_NOVOS_TERMOS = [
-    "cavidade natural subterrânea", "levantamento hidrográfico", "projeto urbanístico",
-]
-
-MODALIDADES = [4, 5, 6, 7, 8]
-NOMES_MODALIDADES = {
-    4: "Concorrência - Eletrônica", 5: "Concorrência - Presencial",
-    6: "Pregão - Eletrônico", 7: "Pregão - Presencial", 8: "Dispensa de Licitação",
-}
-UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB",
-       "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"]
+CONFIG = carregar_configuracao()
+TERMOS = CONFIG["termos"]
+PALAVRAS_CURTAS = set(CONFIG["palavras_curtas"])
+EXCLUSOES = CONFIG["exclusoes"]
+SCORE_MINIMO = CONFIG["score_minimo"]
+STATUS_CAPTACAO = CONFIG["status_captacao"]
+ROTULOS_CAPTACAO = {int(chave): rotulo for chave, rotulo in CONFIG["rotulos_captacao"].items()}
+TOPOGRAFIA_FAMILIA = CONFIG["topografia_familia"]
+SUGESTOES_NOVOS_TERMOS = CONFIG["sugestoes_novos_termos"]
+MODALIDADES = CONFIG["modalidades"]
+NOMES_MODALIDADES = {int(chave): nome for chave, nome in CONFIG["nomes_modalidades"].items()}
+UFS = CONFIG["ufs"]
 
 MAX_FALHAS_CONSECUTIVAS = 8
 DELAY_ENTRE_REQUISICOES = 1.0
@@ -122,11 +72,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 log = logging.getLogger("radar_pncp")
 SESSAO_HTTP = requests.Session()
 
-# Se o texto deixa claro que é contratação de SERVIÇO/OBRA, a exclusão não vale
-RESGATE = [
-    r"servi[çc]os? t[ée]cnic", r"elabora[çc][ãa]o", r"contrata[çc][ãa]o (?:semi-?)?integrada",
-    r"execu[çc][ãa]o de obras?", r"obras? de engenharia", r"empresas? (?:especializada|de engenharia)",
-]
+RESGATE = CONFIG["resgate"]
 _REGEX_EXCLUSAO = re.compile("|".join(EXCLUSOES), re.IGNORECASE)
 _REGEX_RESGATE = re.compile("|".join(RESGATE), re.IGNORECASE)
 
@@ -155,6 +101,10 @@ def _contem(texto, termo):
 def _normalizar(texto):
     texto = unicodedata.normalize("NFKD", str(texto or "").lower())
     return "".join(c for c in texto if not unicodedata.combining(c))
+
+
+def _local_bloqueado(uf, municipio):
+    return (str(uf or "").strip().upper(), _normalizar(municipio).strip()) in LOCAIS_BLOQUEADOS
 
 
 def _texto_para_classificar(objeto_compra, informacao_complementar=None):
@@ -507,6 +457,8 @@ def coletar(dias_futuros=90, delay=None, nova_varredura=False):
                 total_escaneados += len(resultado["data"])
                 for item in resultado["data"]:
                     unidade = item.get("unidadeOrgao") or {}
+                    if _local_bloqueado(unidade.get("ufSigla"), unidade.get("municipioNome")):
+                        continue
                     entidade = item.get("orgaoEntidade") or {}
                     texto_classificacao = _texto_para_classificar(
                         item.get("objetoCompra"), item.get("informacaoComplementar")
@@ -639,6 +591,8 @@ def montar_dataframe(conn, hoje=None, incluir_sem_interesse=False):
     hoje = pd.Timestamp(hoje or agora_brt.date()).normalize()
     # rowid fornece um ID curto, único e estável enquanto o registro permanecer no banco.
     df = pd.read_sql_query("SELECT rowid AS idRadar, * FROM licitacoes", conn)
+    locais_bloqueados = df.apply(lambda linha: _local_bloqueado(linha.get("uf"), linha.get("municipio")), axis=1)
+    df = df[~locais_bloqueados].copy()
     df["encerramento"] = pd.to_datetime(
         df["dataEncerramentoProposta"].map(_timestamp_brasilia), errors="coerce")
     df["descartada"] = df["descartada"].fillna(0).astype(int)
