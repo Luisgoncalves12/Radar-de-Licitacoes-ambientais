@@ -2,7 +2,7 @@
 
 ## Sobre o projeto
 
-Sou estudante do segundo semestre de Engenharia de Software e trabalho como jovem aprendiz na Progaia. Criei este projeto para aprender, na prática, a consumir uma API e para ajudar a resolver um problema pequeno, mas recorrente no trabalho: encontrar oportunidades de licitação relacionadas aos serviços da empresa exigia fazer buscas e captações manuais.
+Criei este projeto para aprender, na prática, a consumir uma API e para ajudar a resolver um problema pequeno, mas recorrente no trabalho: encontrar oportunidades de licitação relacionadas aos serviços da empresa exigia fazer buscas e captações manuais.
 
 O Radar consulta dados públicos do Portal Nacional de Contratações Públicas (PNCP), procura oportunidades ligadas principalmente a serviços ambientais e áreas técnicas relacionadas e organiza os resultados em uma planilha diária. A ideia é reduzir o trabalho de busca e facilitar a triagem. O programa não decide se uma licitação deve ser disputada e não substitui a leitura do edital.
 
