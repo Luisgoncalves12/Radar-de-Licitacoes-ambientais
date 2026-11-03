@@ -4,7 +4,7 @@ Um projeto pessoal para encontrar e organizar oportunidades de licitação relac
 
 ## Como esse projeto começou
 
-Tenho 18 anos, sou jovem aprendiz na Progaia e estou no segundo semestre de Engenharia de Software. Queria aprender mais sobre APIs e, ao mesmo tempo, percebi que a busca por editais na empresa tomava bastante tempo.
+Queria aprender mais sobre APIs e, ao mesmo tempo, percebi que a busca por editais na empresa tomava bastante tempo.
 
 Fui pesquisar se havia uma API que pudesse ajudar e encontrei a do PNCP. Comecei a testar aos poucos e priorizei oportunidades do DNIT, órgão com o qual a Progaia já tem relacionamento. Com a ajuda dos analistas de licitações, defini um critério importante: o Radar descarta oportunidades com menos de sete dias para o fim do prazo, porque esse tempo costuma ser curto para analisar o edital e preparar uma proposta.
 
