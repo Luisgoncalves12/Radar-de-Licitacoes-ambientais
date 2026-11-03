@@ -2,7 +2,7 @@
 
 ## Sobre o projeto
 
-Criei este projeto para aprender, na prática, a consumir uma API e para ajudar a resolver um problema pequeno, mas recorrente no trabalho: encontrar oportunidades de licitação relacionadas aos serviços da empresa exigia fazer buscas e captações manuais.
+Sou estudante do segundo semestre de Engenharia de Software e trabalho como jovem aprendiz na Progaia. Criei este projeto para aprender, na prática, a consumir uma API e para ajudar a resolver um problema pequeno, mas recorrente no trabalho: encontrar oportunidades de licitação relacionadas aos serviços da empresa exigia fazer buscas e captações manuais.
 
 O Radar consulta dados públicos do Portal Nacional de Contratações Públicas (PNCP), procura oportunidades ligadas principalmente a serviços ambientais e áreas técnicas relacionadas e organiza os resultados em uma planilha diária. A ideia é reduzir o trabalho de busca e facilitar a triagem. O programa não decide se uma licitação deve ser disputada e não substitui a leitura do edital.
 
@@ -19,17 +19,6 @@ Este projeto também é uma forma de estudo. Durante o desenvolvimento, pratique
 7. Guarda a marcação **Já captei?** feita na planilha para reaproveitá-la na próxima execução.
 
 O período de busca vai da data da execução até os 90 dias seguintes. A consulta percorre as páginas retornadas pela API e usa pausas e novas tentativas para lidar com falhas temporárias e limites de requisição.
-
-## Execução automática no GitHub Actions
-
-O workflow `.github/workflows/automacao.yml` executa o Radar todos os dias em dois horários:
-
-- **13h, horário de Brasília:** execução normal, que respeita os checkpoints do dia.
-- **18h, horário de Brasília:** nova varredura completa, usando `--nova-varredura` para consultar novamente todos os estados e modalidades.
-
-O GitHub agenda os horários em UTC: 16h UTC corresponde a 13h em Brasília, e 21h UTC corresponde a 18h. Também é possível iniciar o workflow manualmente pela aba **Actions** do GitHub; a execução manual usa o modo normal.
-
-Ao terminar, o workflow salva no repositório as alterações em `licitacoes_progaia.db` e na pasta `planilhas/`, criando um commit quando houver mudanças. Para isso, o Actions precisa ter permissão de escrita no conteúdo do repositório. O workflow deve estar na branch padrão do GitHub para os agendamentos automáticos serem executados.
 
 ## Como a classificação funciona
 
@@ -59,6 +48,30 @@ As abas geradas são:
 Na coluna **Já captei?**, escolha **Não**, **Sim** ou **Sem interesse**. Salve e feche a planilha antes de executar o programa novamente. O Radar importa as marcações e as mantém no banco. Uma oportunidade marcada como **Sem interesse** pode voltar ao acompanhamento se a marcação for alterada para **Não** ou **Sim**.
 
 A planilha inclui informações como objeto, órgão, estado, município, modalidade, valor estimado, situação, prazo restante, termos encontrados e link para abrir o edital. O prazo mínimo padrão é de sete dias; situações suspensas ou canceladas recebem tratamento especial no relatório.
+
+### Fotos dos resultados
+
+Estas capturas mostram as abas geradas pelo Radar:
+
+#### Em aberto
+
+![Captura da aba Em Aberto](assets/readme/em-aberto.png)
+
+#### Novas oportunidades
+
+![Captura da aba Novas](assets/readme/novas.png)
+
+#### Oportunidades atualizadas
+
+![Captura da aba Atualizadas](assets/readme/atualizadas.png)
+
+#### Já captei
+
+![Captura da aba Já captei](assets/readme/ja-captei.png)
+
+#### Sem interesse
+
+![Captura da aba Sem interesse](assets/readme/sem-interesse.png)
 
 ## Como executar
 
@@ -102,6 +115,17 @@ Na execução normal, o programa registra quais combinações de estado e modali
 
 > Antes de executar novamente, salve e feche o arquivo do Excel. Se a planilha estiver aberta, o programa pode não conseguir atualizá-la.
 
+### Execução automática no GitHub Actions
+
+O workflow `.github/workflows/automacao.yml` executa o Radar todos os dias em dois horários:
+
+- **13h, horário de Brasília:** execução normal, que respeita os checkpoints do dia.
+- **18h, horário de Brasília:** nova varredura completa, usando `--nova-varredura` para consultar novamente todos os estados e modalidades.
+
+Os horários do GitHub são definidos em UTC: 16h UTC corresponde a 13h em Brasília, e 21h UTC corresponde a 18h. Também é possível iniciar o workflow manualmente pela aba **Actions** do GitHub; a execução manual usa o modo normal.
+
+Ao terminar, o workflow salva no repositório as alterações em `licitacoes_progaia.db` e na pasta `planilhas/`, criando um commit quando houver mudanças. O Actions precisa ter permissão de escrita no conteúdo do repositório, e o workflow deve estar na branch padrão para os agendamentos automáticos funcionarem.
+
 ## Banco de dados
 
 O arquivo `licitacoes_progaia.db` é um banco SQLite usado pelo Radar. Ele fica nesta pasta e é aberto pelo próprio script. As tabelas operacionais são:
@@ -123,6 +147,7 @@ Radar PNCP v5/
 ├── licitacoes_progaia.db     # Banco operacional do Radar
 ├── README.md                 # Este guia
 ├── planilhas/                 # Planilhas diárias geradas
+├── assets/readme/             # Capturas das abas da planilha
 ├── tests/                     # Testes do Radar e da classificação
 └── HISTORICO/                 # Versões e materiais de etapas anteriores
 ```
