@@ -1,166 +1,170 @@
-# Radar PNCP v5
+# Radar PNCP v5.1
+
+Busca de oportunidades de licitação relacionadas a serviços ambientais, com classificação por palavras-chave e geração de planilhas Excel.
 
 ## Sobre o projeto
 
-Sou estudante do segundo semestre de Engenharia de Software e trabalho como jovem aprendiz na Progaia. Criei este projeto para aprender, na prática, a consumir uma API e para ajudar a resolver um problema pequeno, mas recorrente no trabalho: encontrar oportunidades de licitação relacionadas aos serviços da empresa exigia fazer buscas e captações manuais.
+Criei o Radar como projeto de estudo em Engenharia de Software, a partir de uma necessidade que encontrei no trabalho: a busca e a triagem de licitações exigiam consultas manuais recorrentes.
 
-O Radar consulta dados públicos do Portal Nacional de Contratações Públicas (PNCP), procura oportunidades ligadas principalmente a serviços ambientais e áreas técnicas relacionadas e organiza os resultados em uma planilha diária. A ideia é reduzir o trabalho de busca e facilitar a triagem. O programa não decide se uma licitação deve ser disputada e não substitui a leitura do edital.
+O programa consulta dados públicos do Portal Nacional de Contratações Públicas (PNCP), identifica oportunidades relacionadas aos termos configurados e organiza os resultados em uma planilha. O objetivo é facilitar a primeira análise e o acompanhamento dos editais.
 
-Este projeto também é uma forma de estudo. Durante o desenvolvimento, pratiquei integração com API, tratamento de respostas JSON, paginação, classificação por palavras-chave, persistência com SQLite e geração de planilhas com Python.
+Durante o desenvolvimento, trabalhei com consumo de API, tratamento de JSON, paginação, persistência em SQLite e geração de relatórios com Python.
 
-## O que o programa faz
+A rotina de coleta também conta com uma automação pelo GitHub Actions, mantida em um repositório privado.
 
-1. Consulta a API de contratações com propostas abertas do PNCP.
-2. Pesquisa as 27 unidades federativas e as modalidades de contratação configuradas no script.
-3. Analisa o objeto da contratação, a informação complementar disponível e o contexto do órgão ou da unidade.
-4. Classifica as oportunidades por termos e pontuação, para priorizar resultados relacionados ao foco do Radar.
-5. Salva e atualiza os registros em um banco SQLite, mantendo histórico de alterações relevantes.
-6. Gera uma planilha Excel com oportunidades organizadas por prazo, prioridade, situação e movimento.
-7. Guarda a marcação **Já captei?** feita na planilha para reaproveitá-la na próxima execução.
+## O que o Radar faz
 
-O período de busca vai da data da execução até os 90 dias seguintes. A consulta percorre as páginas retornadas pela API e usa pausas e novas tentativas para lidar com falhas temporárias e limites de requisição.
+- Consulta contratações com propostas abertas, nas UFs e modalidades definidas na configuração.
+- Analisa o objeto da contratação e as informações complementares disponíveis.
+- Classifica as oportunidades por termos e pontuação.
+- Salva os registros em SQLite e acompanha alterações de situação e prazo.
+- Gera uma planilha diária com filtros, destaques e links para os editais.
+- Reaproveita as marcações de captação feitas na planilha.
+- Guarda o progresso da coleta para permitir a retomada após interrupções.
 
-## Como a classificação funciona
+Por padrão, a busca considera as 27 UFs e uma janela de até 90 dias a partir da data de execução.
 
-O Radar procura termos ligados, por exemplo, a licenciamento ambiental, estudos ambientais, restauração florestal, manejo arbóreo, fauna, arqueologia e monitoramento ambiental. Cada termo tem um peso:
+## Como funciona a classificação
 
-- **Peso 3:** termos mais específicos do foco do projeto.
-- **Peso 2:** termos relevantes que podem precisar de contexto.
-- **Peso 1:** termos genéricos, que sozinhos não costumam ser suficientes.
+Os termos e seus pesos ficam em `configuracao.json`. A configuração inclui expressões relacionadas a licenciamento ambiental, estudos ambientais, recuperação de áreas degradadas, fauna, arqueologia e outras áreas técnicas.
 
-Em geral, a oportunidade precisa alcançar pontuação mínima 2 para ser mantida. O código também aplica regras para reduzir falsos positivos: termos genéricos podem depender do contexto do órgão ou da unidade; compras de bens são filtradas quando não há sinais de serviço; e topografia ou agrimensura isoladas não são suficientes para classificar uma oportunidade como relevante. Essas regras são heurísticas baseadas no texto recebido da API, não uma análise jurídica ou técnica do edital.
+| Peso | Uso na classificação |
+| --- | --- |
+| 3 | Termos mais específicos do foco da busca |
+| 2 | Termos relevantes, que podem exigir contexto |
+| 1 | Termos genéricos, insuficientes isoladamente |
 
-Os termos, pesos e critérios estão definidos no próprio `radar_pncp_v5.1.py`.
+Em geral, uma oportunidade precisa alcançar pelo menos dois pontos para ser mantida. O script também aplica regras de contexto e exclusão para reduzir resultados fora do foco, como compras de bens sem indicação de serviço e topografia isolada.
 
-## O que aparece na planilha
+A classificação depende do texto recebido e das regras configuradas. A decisão sobre participar de uma licitação exige a leitura do edital e de seus anexos.
 
-A cada execução, o Radar cria ou atualiza um arquivo com a data do dia dentro de `planilhas/`. A pasta mantém as planilhas anteriores.
+## A planilha
 
-As abas geradas são:
+O relatório é salvo em `planilhas/DD.MM.AAAA.xlsx`, usando a data no horário de Brasília. Ele contém seis abas:
 
-- **Em Aberto:** oportunidades ainda dentro do prazo considerado pelo Radar.
-- **DNIT:** oportunidades identificadas como relacionadas ao DNIT.
-- **Novas:** oportunidades identificadas pela primeira vez no dia.
-- **Atualizadas:** oportunidades com mudança relevante registrada.
-- **Já captei:** oportunidades marcadas como captadas.
-- **Sem interesse:** oportunidades que foram marcadas para não acompanhar.
+| Aba | Conteúdo |
+| --- | --- |
+| Em Aberto | Oportunidades dentro dos critérios de prazo |
+| DNIT | Oportunidades identificadas como relacionadas ao DNIT |
+| Novas | Oportunidades encontradas pela primeira vez no dia |
+| Atualizadas | Oportunidades com alterações relevantes registradas |
+| Já captei | Oportunidades marcadas como captadas |
+| Sem interesse | Oportunidades marcadas para não acompanhar |
 
-Na coluna **Já captei?**, escolha **Não**, **Sim** ou **Sem interesse**. Salve e feche a planilha antes de executar o programa novamente. O Radar importa as marcações e as mantém no banco. Uma oportunidade marcada como **Sem interesse** pode voltar ao acompanhamento se a marcação for alterada para **Não** ou **Sim**.
+As colunas incluem objeto, órgão, UF, município, modalidade, valor estimado, situação, prazo restante, termos encontrados e link para o edital. O prazo mínimo padrão é de sete dias; situações suspensas ou canceladas recebem tratamento específico.
 
-A planilha inclui informações como objeto, órgão, estado, município, modalidade, valor estimado, situação, prazo restante, termos encontrados e link para abrir o edital. O prazo mínimo padrão é de sete dias; situações suspensas ou canceladas recebem tratamento especial no relatório.
+Na coluna **Já captei?**, é possível escolher **Não**, **Sim** ou **Sem interesse** em qualquer uma das seis abas. Salve e feche o Excel antes de executar o Radar novamente. O programa importa as edições das planilhas geradas pela versão atual e sinaliza marcações conflitantes para revisão.
 
-### Fotos dos resultados
+### Exemplos dos resultados
 
-Estas capturas mostram as abas geradas pelo Radar:
+**Em Aberto**
 
-#### Em aberto
+![Oportunidades na aba Em Aberto](assets/readme/em-aberto.png)
 
-![Captura da aba Em Aberto](assets/readme/em-aberto.png)
+<details>
+<summary>Ver outras abas</summary>
 
-#### Novas oportunidades
+**Novas**
 
-![Captura da aba Novas](assets/readme/novas.png)
+![Novas oportunidades](assets/readme/novas.png)
 
-#### Oportunidades atualizadas
+**Atualizadas**
 
-![Captura da aba Atualizadas](assets/readme/atualizadas.png)
+![Oportunidades atualizadas](assets/readme/atualizadas.png)
 
-#### Já captei
+**Já captei**
 
-![Captura da aba Já captei](assets/readme/ja-captei.png)
+![Oportunidades marcadas como captadas](assets/readme/ja-captei.png)
 
-#### Sem interesse
+**Sem interesse**
 
-![Captura da aba Sem interesse](assets/readme/sem-interesse.png)
+![Oportunidades marcadas como sem interesse](assets/readme/sem-interesse.png)
+
+</details>
+
+## Tecnologias
+
+- **Python 3.10** — linguagem e versão usada no projeto.
+- **Requests** — consultas HTTP ao PNCP.
+- **Pandas** — organização e transformação dos dados.
+- **OpenPyXL** — geração e formatação das planilhas.
+- **SQLite** — armazenamento local dos registros e do progresso.
+- **GitHub Actions** — execução agendada da coleta no repositório privado.
+
+O SQLite faz parte da biblioteca padrão do Python e dispensa a instalação de um servidor de banco de dados.
+
+## Automação com GitHub Actions
+
+Mantenho um repositório privado para executar a rotina de coleta e guardar o banco e as planilhas usados no acompanhamento. Nele, o workflow está configurado para dois horários diários:
+
+| Horário de Brasília | Execução |
+| --- | --- |
+| 13h | Coleta normal, respeitando o progresso já registrado no dia |
+| 18h | Nova varredura, consultando novamente todas as combinações de UF e modalidade |
+
+O workflow prepara o Python, instala as dependências, executa o Radar e salva as atualizações no repositório privado. As planilhas são publicadas ali quando a coleta e a exportação terminam com sucesso. Também é possível iniciar a execução manualmente pela aba **Actions**.
+
+Os agendamentos correspondem a 16h e 21h UTC. O início pode sofrer atrasos do GitHub Actions; os horários indicam a programação da rotina.
+
+Este repositório público reúne o código, a configuração editável e exemplos visuais dos resultados. A automação operacional, o banco e as planilhas do acompanhamento ficam no privado.
 
 ## Como executar
 
-### Requisitos
+Instale o Python 3.10, baixe o projeto e abra um terminal na pasta que contém o script. É necessário ter acesso à internet para a coleta.
 
-- Python 3 instalado.
-- Acesso à internet para consultar o PNCP.
-- As bibliotecas `requests`, `pandas` e `openpyxl`.
-
-Instale as dependências com:
+Instale as dependências:
 
 ```bash
-python -m pip install requests pandas openpyxl
+python -m pip install --require-hashes -r requirements.txt
 ```
 
-O SQLite já faz parte da biblioteca padrão do Python. Não é necessário instalar um servidor de banco de dados.
+Confira a configuração:
 
-### Execução normal
+```bash
+python radar_pncp_v5.1.py --validar-configuracao
+```
 
-Abra um terminal nesta pasta e execute:
+Execute o Radar:
 
 ```bash
 python radar_pncp_v5.1.py
 ```
 
-O programa consulta o PNCP, atualiza o banco e salva a planilha do dia em `planilhas/`. Uma coleta completa percorre as combinações de estados e modalidades e pode levar algum tempo.
+Na primeira execução, o programa cria o banco `licitacoes_progaia.db`. Quando a coleta termina completa, cria a pasta `planilhas/`, se necessário, e grava o relatório do dia. Esses arquivos são gerados localmente; não é necessário baixar um banco ou uma planilha para começar.
 
-### Refazer a busca do dia
+Se a coleta terminar parcial ou falhar, o programa informa o problema no terminal e preserva a planilha anterior. O progresso já confirmado no banco pode ser reaproveitado na próxima execução.
 
-Se quiser consultar novamente todas as combinações no mesmo dia, execute:
+### Refazer a coleta do dia
+
+Para consultar novamente todas as combinações, sem apagar os registros e as marcações já salvos:
 
 ```bash
 python radar_pncp_v5.1.py --nova-varredura
 ```
 
-Essa opção apaga apenas os checkpoints da coleta do dia atual. As oportunidades salvas e as marcações **Já captei?** são preservadas.
+### Configuração editável
 
-### Retomada após interrupção
+Edite o `configuracao.json` existente para ajustar os termos, pesos, filtros, UFs e modalidades. Mantenha a estrutura do arquivo e execute a validação após salvar as alterações.
 
-Na execução normal, o programa registra quais combinações de estado e modalidade foram concluídas. Se a coleta for interrompida por falhas consecutivas, uma nova execução no mesmo dia continua pelas combinações que faltam. A opção `--nova-varredura` força a repetição de todas elas.
+Também é possível indicar outro arquivo de configuração:
 
-> Antes de executar novamente, salve e feche o arquivo do Excel. Se a planilha estiver aberta, o programa pode não conseguir atualizá-la.
-
-### Execução automática no GitHub Actions
-
-O workflow `.github/workflows/automacao.yml` executa o Radar todos os dias em dois horários:
-
-- **13h, horário de Brasília:** execução normal, que respeita os checkpoints do dia.
-- **18h, horário de Brasília:** nova varredura completa, usando `--nova-varredura` para consultar novamente todos os estados e modalidades.
-
-Os horários do GitHub são definidos em UTC: 16h UTC corresponde a 13h em Brasília, e 21h UTC corresponde a 18h. Também é possível iniciar o workflow manualmente pela aba **Actions** do GitHub; a execução manual usa o modo normal.
-
-Ao terminar, o workflow salva no repositório as alterações em `licitacoes_progaia.db` e na pasta `planilhas/`, criando um commit quando houver mudanças. O Actions precisa ter permissão de escrita no conteúdo do repositório, e o workflow deve estar na branch padrão para os agendamentos automáticos funcionarem.
-
-## Banco de dados
-
-O arquivo `licitacoes_progaia.db` é um banco SQLite usado pelo Radar. Ele fica nesta pasta e é aberto pelo próprio script. As tabelas operacionais são:
-
-| Tabela | Finalidade |
-| --- | --- |
-| `licitacoes` | Registros encontrados, situação atual, classificação e marcação de captação. |
-| `historico_alteracoes` | Alterações relevantes observadas nos dados de uma oportunidade. |
-| `log_execucoes` | Resumo das execuções, incluindo resultados e falhas. |
-| `progresso` | Checkpoints por data, estado e modalidade para retomar a coleta. |
-
-O número de controle PNCP identifica cada oportunidade e evita duplicações. A primeira data em que o Radar encontrou um registro é preservada para distinguir oportunidades novas. O histórico permite acompanhar mudanças de situação e prazo; uma mudança isolada no campo de atualização da API não é tratada automaticamente como alteração relevante.
-
-## Estrutura da pasta
-
-```text
-Radar PNCP v5/
-├── radar_pncp_v5.1.py        # Script principal
-├── licitacoes_progaia.db     # Banco operacional do Radar
-├── README.md                 # Este guia
-├── planilhas/                 # Planilhas diárias geradas
-├── assets/readme/             # Capturas das abas da planilha
-├── tests/                     # Testes do Radar e da classificação
-└── HISTORICO/                 # Versões e materiais de etapas anteriores
+```bash
+python radar_pncp_v5.1.py --configuracao minha-configuracao.json
 ```
 
-O histórico foi mantido como referência da evolução do projeto. Para continuar o desenvolvimento e executar a versão atual, use o `radar_pncp_v5.1.py` da raiz; os scripts dentro de `HISTORICO/` são versões antigas.
+Se houver um problema na configuração, o Radar encerra a execução com uma mensagem de erro antes de iniciar a coleta.
 
-## Limites conhecidos
+## Estrutura do repositório
 
-- A classificação depende dos textos disponibilizados pelo PNCP e das regras de palavras-chave do script. Uma oportunidade pode não aparecer se a descrição não usar termos reconhecidos, ou pode exigir revisão por ter sido classificada de forma ampla.
-- O Radar organiza oportunidades para facilitar a triagem; a equipe deve consultar o PNCP e ler o edital e seus anexos antes de tomar qualquer decisão.
-- A execução depende da disponibilidade da API e de uma conexão com a internet.
-- As marcações feitas na planilha devem ser salvas antes da próxima execução para serem importadas.
+```text
+Radar-de-Licitacoes-ambientais/
+├── radar_pncp_v5.1.py
+├── configuracao.json
+├── requirements.txt
+├── README.md
+├── .gitignore
+└── assets/
+    └── readme/
+```
 
-## Possíveis melhorias futuras
-
-Como projeto de aprendizagem, há espaço para evoluir em várias direções: separar configurações do código, documentar melhor os critérios de classificação, ampliar a observabilidade da coleta, automatizar verificações e criar relatórios que ajudem a entender a qualidade dos resultados ao longo do tempo. Essas ideias não fazem parte do escopo atual do Radar.
+O código e a configuração ficam disponíveis para estudo e adaptação. O banco e as planilhas são gerados durante o uso. As imagens em `assets/readme/` mostram exemplos da apresentação dos resultados.
