@@ -1,8 +1,35 @@
-# Dados locais gerados pelo Radar
+# Dados gerados localmente
 *.db
+*.db-*
 *.sqlite
 *.sqlite3
+*.radar.lock
 *.xlsx
 *.xls
 *.csv
-~$*
+planilhas/
+backups*/
+
+# Ambiente e credenciais
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.aws/
+.codex/
+.agents/
+
+# Python e ferramentas
+__pycache__/
+*.py[cod]
+.pytest_cache/
+pytest-cache-files-*/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

@@ -1,170 +1,107 @@
-# Radar PNCP v5.1
+<h1 align="center">Radar de Licitações</h1>
 
-Busca de oportunidades de licitação relacionadas a serviços ambientais, com classificação por palavras-chave e geração de planilhas Excel.
+<p align="center">Busca no PNCP, histórico em SQLite e triagem em Excel</p>
 
-## Sobre o projeto
+<p align="center"><strong>Python · Pandas · Requests · SQLite · OpenPyXL · GitHub Actions</strong></p>
 
-Criei o Radar como projeto de estudo em Engenharia de Software, a partir de uma necessidade que encontrei no trabalho: a busca e a triagem de licitações exigiam consultas manuais recorrentes.
+Comecei o Radar para facilitar uma tarefa que fazia no trabalho, procurar licitações de serviços ambientais e de engenharia. A busca manual tomava tempo, então fui montando um programa em Python para consultar o PNCP e organizar as oportunidades em uma planilha.
 
-O programa consulta dados públicos do Portal Nacional de Contratações Públicas (PNCP), identifica oportunidades relacionadas aos termos configurados e organiza os resultados em uma planilha. O objetivo é facilitar a primeira análise e o acompanhamento dos editais.
+Sou estudante de Análise e Desenvolvimento de Sistemas e tenho usado o projeto para aprender na prática. Conforme a equipe foi usando os resultados, apareceram ajustes nos filtros, nas marcações e na forma de lidar com as falhas da API.
 
-Durante o desenvolvimento, trabalhei com consumo de API, tratamento de JSON, paginação, persistência em SQLite e geração de relatórios com Python.
+## Como funciona
 
-A rotina de coleta também conta com uma automação pelo GitHub Actions, mantida em um repositório privado.
+O Radar consulta a API pública do Portal Nacional de Contratações Públicas por estado e modalidade. Ele procura termos no objeto e nas informações complementares, aplica as regras de classificação e salva os registros em SQLite.
 
-## O que o Radar faz
+A planilha reúne as oportunidades em abas como Em Aberto, Novas, Atualizadas, Já captei e Sem interesse. Ela mostra os prazos, valores, situação e o link do edital. As marcações feitas pela equipe podem ser importadas para o banco e reaproveitadas na próxima execução.
 
-- Consulta contratações com propostas abertas, nas UFs e modalidades definidas na configuração.
-- Analisa o objeto da contratação e as informações complementares disponíveis.
-- Classifica as oportunidades por termos e pontuação.
-- Salva os registros em SQLite e acompanha alterações de situação e prazo.
-- Gera uma planilha diária com filtros, destaques e links para os editais.
-- Reaproveita as marcações de captação feitas na planilha.
-- Guarda o progresso da coleta para permitir a retomada após interrupções.
+## O que mudou com o uso
 
-Por padrão, a busca considera as 27 UFs e uma janela de até 90 dias a partir da data de execução.
+### Motivo do desinteresse
 
-## Como funciona a classificação
+Antes, a gente marcava que não tinha interesse em uma oportunidade, mas depois faltava saber o motivo. Acrescentei uma lista na planilha para registrar essa decisão. O motivo fica salvo no banco junto da marcação e aparece nas próximas atualizações.
 
-Os termos e seus pesos ficam em `configuracao.json`. A configuração inclui expressões relacionadas a licenciamento ambiental, estudos ambientais, recuperação de áreas degradadas, fauna, arqueologia e outras áreas técnicas.
+![Lista de motivos do desinteresse aberta na planilha](assets/motivo_desinteresse.png)
 
-| Peso | Uso na classificação |
-| --- | --- |
-| 3 | Termos mais específicos do foco da busca |
-| 2 | Termos relevantes, que podem exigir contexto |
-| 1 | Termos genéricos, insuficientes isoladamente |
+### Validação do JSON
 
-Em geral, uma oportunidade precisa alcançar pelo menos dois pontos para ser mantida. O script também aplica regras de contexto e exclusão para reduzir resultados fora do foco, como compras de bens sem indicação de serviço e topografia isolada.
+Os termos e pesos da busca ficam em `configuracao.json`. Depois de compartilhar essa mudança, recebi um comentário sobre o risco de um arquivo incorreto acabar parecendo um dia sem oportunidades.
 
-A classificação depende do texto recebido e das regras configuradas. A decisão sobre participar de uma licitação exige a leitura do edital e de seus anexos.
+Incluí a validação antes da coleta. Se o arquivo não puder ser lido ou estiver com a estrutura incorreta, o programa mostra o erro e interrompe a execução. Também são conferidos os campos obrigatórios, os termos e os pesos. O print mostra a parte da leitura e do tratamento de erros do arquivo.
 
-## A planilha
+![Leitura do JSON e tratamento de erros na configuração](assets/validacao_json.png)
 
-O relatório é salvo em `planilhas/DD.MM.AAAA.xlsx`, usando a data no horário de Brasília. Ele contém seis abas:
+### Planilhas completas e parciais
 
-| Aba | Conteúdo |
-| --- | --- |
-| Em Aberto | Oportunidades dentro dos critérios de prazo |
-| DNIT | Oportunidades identificadas como relacionadas ao DNIT |
-| Novas | Oportunidades encontradas pela primeira vez no dia |
-| Atualizadas | Oportunidades com alterações relevantes registradas |
-| Já captei | Oportunidades marcadas como captadas |
-| Sem interesse | Oportunidades marcadas para não acompanhar |
+A API nem sempre responde como esperado. Quando uma consulta esgota as tentativas, o Radar registra o que ficou pendente e segue para as próximas. Se a busca ficar incompleta, gera um arquivo com `.parcial.xlsx` no nome, separado da planilha completa.
 
-As colunas incluem objeto, órgão, UF, município, modalidade, valor estimado, situação, prazo restante, termos encontrados e link para o edital. O prazo mínimo padrão é de sete dias; situações suspensas ou canceladas recebem tratamento específico.
+Também é possível retomar a rodada do dia. Assim, uma falha na consulta fica identificada e pode ser tratada depois.
 
-Na coluna **Já captei?**, é possível escolher **Não**, **Sim** ou **Sem interesse** em qualquer uma das seis abas. Salve e feche o Excel antes de executar o Radar novamente. O programa importa as edições das planilhas geradas pela versão atual e sinaliza marcações conflitantes para revisão.
+<p align="center"><img src="assets/planilhas_parciais.png" alt="Pasta com planilhas completas e parciais por data" width="629"></p>
 
-### Exemplos dos resultados
+### Organização do código
 
-**Em Aberto**
+Conforme fui acrescentando funções, ficou mais trabalhoso mexer em tudo dentro de um arquivo só. Separei coleta, classificação, banco e planilhas em módulos. O arquivo `radar_pncp_v5.1.py` continua sendo a entrada para executar o programa.
 
-![Oportunidades na aba Em Aberto](assets/readme/em-aberto.png)
+<p align="center"><img src="assets/modulos.png" alt="Módulos do Radar separados na pasta radar" width="282"></p>
 
-<details>
-<summary>Ver outras abas</summary>
+Os filtros também foram sendo revisados. Um caso foi a sigla EIA, que aparece tanto em estudos ambientais quanto em especificações de cabeamento. Ajustei as regras para considerar o contexto e acrescentei testes para esses casos.
 
-**Novas**
+## Como rodar
 
-![Novas oportunidades](assets/readme/novas.png)
+Os workflows usam Python 3.10. No Windows, abra o terminal na pasta do projeto e crie um ambiente virtual.
 
-**Atualizadas**
-
-![Oportunidades atualizadas](assets/readme/atualizadas.png)
-
-**Já captei**
-
-![Oportunidades marcadas como captadas](assets/readme/ja-captei.png)
-
-**Sem interesse**
-
-![Oportunidades marcadas como sem interesse](assets/readme/sem-interesse.png)
-
-</details>
-
-## Tecnologias
-
-- **Python 3.10** — linguagem e versão usada no projeto.
-- **Requests** — consultas HTTP ao PNCP.
-- **Pandas** — organização e transformação dos dados.
-- **OpenPyXL** — geração e formatação das planilhas.
-- **SQLite** — armazenamento local dos registros e do progresso.
-- **GitHub Actions** — execução agendada da coleta no repositório privado.
-
-O SQLite faz parte da biblioteca padrão do Python e dispensa a instalação de um servidor de banco de dados.
-
-## Automação com GitHub Actions
-
-Mantenho um repositório privado para executar a rotina de coleta e guardar o banco e as planilhas usados no acompanhamento. Nele, o workflow está configurado para dois horários diários:
-
-| Horário de Brasília | Execução |
-| --- | --- |
-| 13h | Coleta normal, respeitando o progresso já registrado no dia |
-| 18h | Nova varredura, consultando novamente todas as combinações de UF e modalidade |
-
-O workflow prepara o Python, instala as dependências, executa o Radar e salva as atualizações no repositório privado. As planilhas são publicadas ali quando a coleta e a exportação terminam com sucesso. Também é possível iniciar a execução manualmente pela aba **Actions**.
-
-Os agendamentos correspondem a 16h e 21h UTC. O início pode sofrer atrasos do GitHub Actions; os horários indicam a programação da rotina.
-
-Este repositório público reúne o código, a configuração editável e exemplos visuais dos resultados. A automação operacional, o banco e as planilhas do acompanhamento ficam no privado.
-
-## Como executar
-
-Instale o Python 3.10, baixe o projeto e abra um terminal na pasta que contém o script. É necessário ter acesso à internet para a coleta.
-
-Instale as dependências:
-
-```bash
-python -m pip install --require-hashes -r requirements.txt
+```powershell
+py -3.10 -m venv .venv
 ```
 
-Confira a configuração:
+Instale as dependências e confira a configuração.
 
-```bash
-python radar_pncp_v5.1.py --validar-configuracao
+```powershell
+.\.venv\Scripts\python.exe -m pip install --require-hashes -r requirements.txt
+.\.venv\Scripts\python.exe radar_pncp_v5.1.py --validar-configuracao
 ```
 
-Execute o Radar:
+Para iniciar a coleta, execute o comando abaixo. O banco `radar.db` e a pasta `planilhas` são criados pelo programa.
 
-```bash
-python radar_pncp_v5.1.py
+```powershell
+.\.venv\Scripts\python.exe radar_pncp_v5.1.py
 ```
 
-Na primeira execução, o programa cria o banco `licitacoes_progaia.db`. Quando a coleta termina completa, cria a pasta `planilhas/`, se necessário, e grava o relatório do dia. Esses arquivos são gerados localmente; não é necessário baixar um banco ou uma planilha para começar.
+A configuração inicial consulta as 27 UFs e cinco modalidades, com uma janela de até 90 dias. A rodada tem limite padrão de 90 minutos. Para experimentar com uma busca menor, altere as UFs no JSON antes de começar.
 
-Se a coleta terminar parcial ou falhar, o programa informa o problema no terminal e preserva a planilha anterior. O progresso já confirmado no banco pode ser reaproveitado na próxima execução.
+Para continuar uma rodada pendente do dia, use `--retomar`. Para recomeçar a busca, use `--nova-varredura`. Com `--somente-excel`, o Radar gera a planilha a partir de um banco já preenchido, sem consultar a API.
 
-### Refazer a coleta do dia
+## Ajustar a busca e salvar marcações
 
-Para consultar novamente todas as combinações, sem apagar os registros e as marcações já salvos:
+O JSON reúne os termos, pesos, exclusões, UFs e modalidades. Os pesos aceitos são 1, 2 e 3. A configuração atual é voltada a serviços ambientais e de engenharia. Algumas regras de contexto e prioridade ficam no código e precisam ser revistas se a ideia for adaptar o projeto a outro setor.
 
-```bash
-python radar_pncp_v5.1.py --nova-varredura
+Na coluna Já captei?, escolha Não, Sim ou Sem interesse. Salve e feche a planilha antes de importar as alterações. Troque `ARQUIVO.xlsx` pelo nome do arquivo que você editou.
+
+```powershell
+.\.venv\Scripts\python.exe radar_pncp_v5.1.py --somente-excel --importar-marcacoes "planilhas/ARQUIVO.xlsx"
 ```
 
-### Configuração editável
+As mudanças ficam no histórico do banco. Os editais marcados como captados continuam em Acompanhamento, mesmo depois do prazo das propostas, e recebem novas consultas de situação no PNCP.
 
-Edite o `configuracao.json` existente para ajustar os termos, pesos, filtros, UFs e modalidades. Mantenha a estrutura do arquivo e execute a validação após salvar as alterações.
+## Testes
 
-Também é possível indicar outro arquivo de configuração:
+Os testes cobrem classificação, validação do JSON, banco, importação de marcações, exportação do Excel e tratamento de falhas. As consultas externas são bloqueadas durante os testes, que usam dados de exemplo e bancos temporários ou em memória.
 
-```bash
-python radar_pncp_v5.1.py --configuracao minha-configuracao.json
+```powershell
+.\.venv\Scripts\python.exe -m pip install --require-hashes -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Se houver um problema na configuração, o Radar encerra a execução com uma mensagem de erro antes de iniciar a coleta.
+No GitHub, as verificações rodam em pushes e pull requests. Além dos testes, há uma etapa para conferir as dependências.
 
-## Estrutura do repositório
+## Execução pelo GitHub Actions
 
-```text
-Radar-de-Licitacoes-ambientais/
-├── radar_pncp_v5.1.py
-├── configuracao.json
-├── requirements.txt
-├── README.md
-├── .gitignore
-└── assets/
-    └── readme/
-```
+Nesta versão pública, a coleta é manual. Na aba Actions, abra Coleta manual do Radar e escolha Run workflow. O banco e as planilhas gerados ficam disponíveis para download nos artefatos da execução por três dias. Se a coleta ficar parcial, os arquivos produzidos são preservados e a execução termina sinalizada como falha.
 
-O código e a configuração ficam disponíveis para estudo e adaptação. O banco e as planilhas são gerados durante o uso. As imagens em `assets/readme/` mostram exemplos da apresentação dos resultados.
+Cada execução no Actions começa com um banco novo. Para manter histórico e marcações entre dias, execute localmente usando o mesmo banco. O agendamento diário usado na operação não está ativado nesta cópia.
+
+## Sobre esta versão
+
+As capturas mostram o Radar em uso. O repositório contém o código e a configuração, sem banco preenchido, planilhas da operação ou documentos da empresa.
+
+O Radar ajuda a encontrar e organizar oportunidades. A leitura do edital e dos anexos e a decisão de participar continuam com a equipe. A classificação depende do texto recebido da API e pode precisar de revisão. A cobertura mostrada no resumo indica quanto da coleta foi concluído, sem representar a precisão dos filtros.
